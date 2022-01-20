@@ -1,16 +1,14 @@
-import { Component, OnInit } from '@angular/core';
-import { io } from 'socket.io-client';
-import { environment } from 'src/environments/environment';
-
-
-
+import {Component, OnInit} from '@angular/core';
+import {io} from 'socket.io-client';
+import {environment} from 'src/environments/environment';
+import forge from 'node-forge'
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent implements OnInit{
+export class AppComponent implements OnInit {
 
   id: String;
   public_key = 165246;
@@ -54,7 +52,7 @@ export class AppComponent implements OnInit{
   }
 
   ngOnDestroy(): void {
-    if(this.socket){
+    if (this.socket) {
       this.socket.disconnect();
     }
   }
@@ -64,69 +62,67 @@ export class AppComponent implements OnInit{
   }
 
 
-  generateId(length: Number){
+  generateId(length: Number) {
     var result = '';
     var vowels = 'aeiouy';
     var consonants = 'bcdfghjklmnpqrstvwxz'
-    for ( var i = 0; i < length; i++ ) {
-      if(i % 2 == 0){
+    for (var i = 0; i < length; i++) {
+      if (i % 2 == 0) {
         result += consonants.charAt(Math.floor(Math.random() * consonants.length));
-      }
-      else{
+      } else {
         result += vowels.charAt(Math.floor(Math.random() * vowels.length));
       }
-   }
-   return result;
+    }
+    return result;
   }
 
-  chatWith(user_id){
+  chatWith(user_id) {
     this.currentInterlocutor = user_id;
     this.updateCurrentChat(user_id);
-    for(var i in this.chatHistory){
-      if(this.chatHistory[i].id == user_id){
+    for (var i in this.chatHistory) {
+      if (this.chatHistory[i].id == user_id) {
         return;
       }
     }
     this.chatHistory.push({'id': user_id, 'chat': []});
   }
 
-  sendMessage(dest_id, message){
+  sendMessage(dest_id, message) {
 
-    if(message != ""){
-      if(dest_id != ""){
+    if (message != "") {
+      if (dest_id != "") {
 
-      //encode message
+        //encode message
 
-      //send message
-      this.socket.emit('message', this.id, dest_id, message);
+        //send message
+        this.socket.emit('message', this.id, dest_id, message);
 
-      for(var i in this.chatHistory){
-        if(this.chatHistory[i].id == dest_id){
+        for (var i in this.chatHistory) {
+          if (this.chatHistory[i].id == dest_id) {
 
 
-          this.chatHistory[i].chat.push({'sender': "you", 'message': message});
-          this.updateCurrentChat(dest_id);
-          this.currentMessage = "";
-          return;
+            this.chatHistory[i].chat.push({'sender': "you", 'message': message});
+            this.updateCurrentChat(dest_id);
+            this.currentMessage = "";
+            return;
+          }
         }
-      }
 
         //add new user to chat history
         this.chatHistory.push({'id': dest_id, 'chat': []});
         this.updateCurrentChat(dest_id);
-      }
-      else{
+      } else {
         alert("Please choose another user to talk to.")
       }
     }
   }
 
-  recieveMessage(sender_id, message){
+  recieveMessage(sender_id, message) {
 
     //decode message
 
-    for(var i in this.chatHistory){ //check if user already has a chat history with sender
-      if(this.chatHistory[i].id == sender_id){
+    for (var i in this.chatHistory) { //check if user already has a chat history with sender
+      if (this.chatHistory[i].id == sender_id) {
         this.chatHistory[i].chat.push({'sender': "them", 'message': message});
         this.updateCurrentChat(sender_id);
         return;
@@ -140,12 +136,12 @@ export class AppComponent implements OnInit{
   }
 
 
-  updateCurrentChat(user_id){
+  updateCurrentChat(user_id) {
 
-    if(this.currentInterlocutor == user_id){
+    if (this.currentInterlocutor == user_id) {
 
-      for(var i in this.chatHistory){
-        if(this.chatHistory[i].id == user_id){
+      for (var i in this.chatHistory) {
+        if (this.chatHistory[i].id == user_id) {
           this.currentChat = this.chatHistory[i].chat;
           return;
         }
@@ -155,11 +151,11 @@ export class AppComponent implements OnInit{
   }
 
 
-  updateUsers(userlist){
+  updateUsers(userlist) {
     this.userlist = userlist;
 
-    for(var i in this.userlist){
-      if(this.currentInterlocutor == this.userlist[i].id){//current user has not left
+    for (var i in this.userlist) {
+      if (this.currentInterlocutor == this.userlist[i].id) {//current user has not left
         return;
       }
     }
@@ -228,5 +224,32 @@ export class AppComponent implements OnInit{
     return this.greatestCommonDivisor(b, a % b);
   }
 
+  async generateBigPrimeNumber() {
+    let bits = 512;
+    let number
+    forge.prime.generateProbablePrime(bits, function (err, num) {
+      number = num.toString()
+    });
+    while (!number){
+      await this.sleep(10)
+    }
+  }
 
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async generatePandQ() {
+    let p, q
+
+    do {
+      p = await this.generateBigPrimeNumber()
+      q = await this.generateBigPrimeNumber()
+    } while (q == p)
+
+    return {
+      'p' : p,
+      'q' : q
+    }
+  }
 }
