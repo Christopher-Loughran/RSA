@@ -93,12 +93,16 @@ export class AppComponent implements OnInit{
 
     if(message != ""){
       if(dest_id != ""){
+
+      //encode message
+      
+      //send message
       this.socket.emit('message', this.id, dest_id, message);
 
       for(var i in this.chatHistory){
         if(this.chatHistory[i].id == dest_id){
 
-          //encode message
+          
 
           this.chatHistory[i].chat.push({'sender': "you", 'message': message});
           this.updateCurrentChat(dest_id);
@@ -115,15 +119,13 @@ export class AppComponent implements OnInit{
         alert("Please choose another user to talk to.")
       }
     }
-    
-    
   }
 
   recieveMessage(sender_id, message){
 
     //decode message
 
-    for(var i in this.chatHistory){
+    for(var i in this.chatHistory){ //check if user already has a chat history with sender
       if(this.chatHistory[i].id == sender_id){
         this.chatHistory[i].chat.push({'sender': "them", 'message': message});
         this.updateCurrentChat(sender_id);
@@ -133,6 +135,7 @@ export class AppComponent implements OnInit{
 
     //add new user to chat history
     this.chatHistory.push({'id': sender_id, 'chat': []});
+    this.recieveMessage(sender_id, message);
     this.updateCurrentChat(sender_id);
   }
 
