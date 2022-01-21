@@ -13,6 +13,8 @@ import * as bigInt from "big-integer";
 })
 export class AppComponent implements OnInit {
 
+  title: "rsa-front";
+
   id: String;
   public_key;
   private_key;
@@ -25,6 +27,7 @@ export class AppComponent implements OnInit {
   currentMessage: string = ""
   currentInterlocutor: string = ""
   currentChat = [];
+
 
 
   constructor() {
@@ -141,19 +144,19 @@ export class AppComponent implements OnInit {
 
     //decode message
 
-    message = this.decrypt(this.private_key, message);
+    let decrypted_message = this.decrypt(this.private_key, message);
 
     for (var i in this.chatHistory) { //check if user already has a chat history with sender
       if (this.chatHistory[i].id == sender_id) {
-        this.chatHistory[i].chat.push({'sender': "them", 'message': message});
+        this.chatHistory[i].chat.push({'sender': "them", 'message': decrypted_message});
         this.updateCurrentChat(sender_id);
         return;
       }
     }
 
     //add new user to chat history
-    this.chatHistory.push({'id': sender_id, 'chat': []});
-    this.recieveMessage(sender_id, message);
+    this.chatHistory.push({'id': sender_id, 'chat': [{'sender': "them", 'message': decrypted_message}]});
+    //this.recieveMessage(sender_id, message);
     this.updateCurrentChat(sender_id);
   }
 
@@ -191,7 +194,7 @@ export class AppComponent implements OnInit {
     const m = (p - 1) * (q - 1);
 
     let e;
-    const candidates = [3, 5, 17, 257, 65537];
+    const candidates = [3, 5, 257, 65537];
 
     for(let i in candidates){ //choose e from candidates
       if(candidates[i] < m && this.greatestCommonDivisor(candidates[i], m) == 1 && this.checkCoPrime(candidates[i], m)){
@@ -271,8 +274,8 @@ export class AppComponent implements OnInit {
     let cipher = []
 
     for(let i in message){
-      console.log(message[i].charCodeAt(0));
       let c = message[i].charCodeAt(0) ** e % n
+      console.log(message[i] + " -> (" + message[i].charCodeAt(0) +  "**" + e + ") mod " + n + " -> " + c );
       cipher.push(c)
     }
 
@@ -280,8 +283,9 @@ export class AppComponent implements OnInit {
   }
 
 
-  decrypt(private_key, cipher){
-    cipher = JSON.parse(cipher).cipher;
+  decrypt(private_key, encrypted_message_json){
+    console.log(encrypted_message_json);
+    let encrypted_message = JSON.parse(encrypted_message_json).cipher;
 
     let d = private_key.d;
     let n = private_key.n;
@@ -290,12 +294,11 @@ export class AppComponent implements OnInit {
 
     let message = ""
 
-    for(let i in cipher){
-      let c = bigInt(cipher[i]);
+    for(let i in encrypted_message){
+      let c = bigInt(encrypted_message[i]);
       let value = c.pow(d).mod(n).toJSNumber();
-      console.log(value);
-
       let char = String.fromCharCode(value)
+      console.log("(" + c + "**" + d + ") mod " + n + " -> " + value + " -> " + char);
       message += char
     }
 
