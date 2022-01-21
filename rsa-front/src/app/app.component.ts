@@ -1,7 +1,10 @@
 import {Component, OnInit} from '@angular/core';
 import {io} from 'socket.io-client';
 import {environment} from 'src/environments/environment';
-import forge from 'node-forge'
+import * as prime from 'prime-functions'
+import { BigInteger } from 'big-integer';
+import * as bigInt from "big-integer";
+
 
 @Component({
   selector: 'app-root',
@@ -11,12 +14,12 @@ import forge from 'node-forge'
 export class AppComponent implements OnInit {
 
   id: String;
-  public_key = 165246;
+  public_key;
   private_key;
   socket;
 
 
-  userlist: Array<any> = [];
+  userList: Array<any> = [];
   chatHistory = [];
 
   currentMessage: string = ""
@@ -33,9 +36,11 @@ export class AppComponent implements OnInit {
 
     this.id = this.generateId(6);
 
-    //generate public / private keys
+    let seeds = this.generateSeeds(2); //generate p and q
+    this.generateKeys(seeds.p, seeds.q);
 
-    this.generatePublicKey(53, 61);
+    console.log("public key: " + JSON.stringify(this.public_key));
+    console.log("private key: " + JSON.stringify(this.private_key));
 
     this.socket.emit('setup_user', this.id, this.public_key);
 
@@ -51,16 +56,12 @@ export class AppComponent implements OnInit {
     });
   }
 
+
   ngOnDestroy(): void {
     if (this.socket) {
       this.socket.disconnect();
     }
   }
-
-  displayError(error: Error) {
-    console.error(error.message);
-  }
-
 
   generateId(length: Number) {
     var result = '';
@@ -76,6 +77,7 @@ export class AppComponent implements OnInit {
     return result;
   }
 
+  //choose another user to talk to
   chatWith(user_id) {
     this.currentInterlocutor = user_id;
     this.updateCurrentChat(user_id);
@@ -87,17 +89,21 @@ export class AppComponent implements OnInit {
     this.chatHistory.push({'id': user_id, 'chat': []});
   }
 
+
+  //encode and send message
   sendMessage(dest_id, message) {
 
     if (message != "") {
       if (dest_id != "") {
 
         //encode message
+        let dest_key = this.getPublicKey(dest_id);
+        let cipher = JSON.stringify(this.encrypt(dest_key, message));
 
         //send message
-        this.socket.emit('message', this.id, dest_id, message);
+        this.socket.emit('message', this.id, dest_id, cipher);
 
-        for (var i in this.chatHistory) {
+        for (let i in this.chatHistory) {
           if (this.chatHistory[i].id == dest_id) {
 
 
@@ -117,9 +123,25 @@ export class AppComponent implements OnInit {
     }
   }
 
+
+  getPublicKey(user_id){
+
+    for(let i in this.userList){
+      if(this.userList[i].id == user_id){
+        return this.userList[i].public_key
+      }
+    }
+    throw new Error("No user with that id exists");
+  }
+
+
+
+  //decode and display message
   recieveMessage(sender_id, message) {
 
     //decode message
+
+    message = this.decrypt(this.private_key, message);
 
     for (var i in this.chatHistory) { //check if user already has a chat history with sender
       if (this.chatHistory[i].id == sender_id) {
@@ -152,10 +174,10 @@ export class AppComponent implements OnInit {
 
 
   updateUsers(userlist) {
-    this.userlist = userlist;
+    this.userList = userlist;
 
-    for (var i in this.userlist) {
-      if (this.currentInterlocutor == this.userlist[i].id) {//current user has not left
+    for (var i in this.userList) {
+      if (this.currentInterlocutor == this.userList[i].id) {//current user has not left
         return;
       }
     }
@@ -164,45 +186,52 @@ export class AppComponent implements OnInit {
   }
 
 
-  generatePublicKey(p, q){
-    var n = p*q;
-    var m = (p-1)*(q-1);
+  generateKeys(p, q){
+    const n = p * q;
+    const m = (p - 1) * (q - 1);
 
+    let e;
+    const candidates = [3, 5, 17, 257, 65537];
 
-    var e = 0;
-
-    var i = 1; //iterator
-    while(e == 0){
-
-      let candidate = (m*i)+1; //generate e candidate
-      this.checkCoPrime(candidate, m);
-
-      e = 1;
-
-      i++;
+    for(let i in candidates){ //choose e from candidates
+      if(candidates[i] < m && this.greatestCommonDivisor(candidates[i], m) == 1 && this.checkCoPrime(candidates[i], m)){
+        e = candidates[i];
+        break;
+      }
     }
 
+    this.public_key = {'n': n, 'e': e};
+
+    let d = this.modInverse(e, m);
+
+    this.private_key = {'n': n, 'd': d};
+
+  }
+
+  modInverse(a, m) {
+    for(let x = 1; x < m; x++){
+      if (((a % m) * (x % m)) % m == 1){
+        return x;
+      }
+    }
+    return 0;
   }
 
 
   checkCoPrime(a, b){
 
-    console.log("co prime" + a + " " + b)
     let factors = this.findFactors(a);
     factors.concat(this.findFactors(b));//create a table containing all the factors of a and b
 
     factors = factors.sort();
 
-    console.log(factors);
+    for(let i = 0; i < factors.length-1; i++){
+      if(factors[i] == factors[i+1]){//a and b share a common factor
+        return false;
+      }
+    }
+    return true;
   }
-
-
-  checkIsPrime(num){
-    for(var i = 2; i < num; i++)
-      if(num % i === 0) return false;
-    return num > 1;
-  }
-
 
   findFactors(num){
     var factors = [];
@@ -216,7 +245,6 @@ export class AppComponent implements OnInit {
     return factors;
   }
 
-
   greatestCommonDivisor(a, b) {
     if (!b) {
       return a;
@@ -224,32 +252,56 @@ export class AppComponent implements OnInit {
     return this.greatestCommonDivisor(b, a % b);
   }
 
-  async generateBigPrimeNumber() {
-    let bits = 512;
-    let number
-    forge.prime.generateProbablePrime(bits, function (err, num) {
-      number = num.toString()
-    });
-    while (!number){
-      await this.sleep(10)
-    }
+  generateSeeds(size){
+
+    let min = 10**size
+    let max = 10**(size+1)
+
+    let p = prime.randomPrime(min, max)
+    let q = prime.randomPrime(min, max)
+
+    return {'p': p, 'q': q}
   }
 
-  sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+
+  encrypt(public_key, message){
+    let e = public_key.e;
+    let n = public_key.n;
+
+    let cipher = []
+
+    for(let i in message){
+      console.log(message[i].charCodeAt(0));
+      let c = message[i].charCodeAt(0) ** e % n
+      cipher.push(c)
+    }
+
+    return {'cipher' : cipher};
   }
 
-  async generatePandQ() {
-    let p, q
 
-    do {
-      p = await this.generateBigPrimeNumber()
-      q = await this.generateBigPrimeNumber()
-    } while (q == p)
+  decrypt(private_key, cipher){
+    cipher = JSON.parse(cipher).cipher;
 
-    return {
-      'p' : p,
-      'q' : q
+    let d = private_key.d;
+    let n = private_key.n;
+
+    console.log("started decrypt");
+
+    let message = ""
+
+    for(let i in cipher){
+      let c = bigInt(cipher[i]);
+      let value = c.pow(d).mod(n).toJSNumber();
+      console.log(value);
+
+      let char = String.fromCharCode(value)
+      message += char
     }
+
+    return message;
   }
 }
+
+
+

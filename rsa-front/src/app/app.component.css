@@ -1,0 +1,20 @@
+.your_message{
+  float: right;
+  max-width: 200px;
+  word-wrap: break-word;
+  text-align: right;
+  padding: 6px;
+  border: 1px solid blue;
+  border-radius: 6px;
+  margin-bottom: 2px;
+}
+
+.their_message{
+  float: left;
+  max-width: 200px;
+  word-wrap: break-word;
+  padding: 6px;
+  border: 1px solid black;
+  border-radius: 6px;
+  margin-bottom: 2px;
+}

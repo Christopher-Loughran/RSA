@@ -1,22 +1,25 @@
-<h3>You Are {{ this.id }}</h3>
+<h3>You are {{ this.id }}</h3>
 
-<table *ngFor="let item of this.userlist">
+<table *ngFor="let item of this.userList">
     <tr *ngIf="item.id != this.id">
         <td>{{ item.id }}</td>
         <td><button (click)="this.chatWith(item.id)">Chat</button></td>
+        <td>Key: </td>
+        <td>{{ item.public_key.n }},</td>
+        <td>{{ item.public_key.e }}</td>
     </tr>
 </table>
 
-<p *ngIf="this.currentInterlocutor != '' ">{{ this.currentInterlocutor }} :</p>
+<h4 *ngIf="this.currentInterlocutor != '' ">{{ this.currentInterlocutor }} :</h4>
 <div style="overflow-y: scroll; height:500px; width: 300px; display: flex; flex-direction: column-reverse;">
     <div *ngFor="let item of this.currentChat.reverse()">
 
         <div *ngIf="item.sender=='you' ; then yourMessage else theirMessage "></div>
         <ng-template #yourMessage>
-            <p style="float: right; max-width: 200px; word-wrap: break-word; text-align: right; border: 1px solid blue;">{{ item.message }}</p>
+            <div class="your_message">{{ item.message }}</div>
         </ng-template>
         <ng-template #theirMessage>
-            <p style="float: left; max-width: 200px; word-wrap: break-word; border: 1px solid black;">{{ item.message }}</p>
+            <div class="their_message">{{ item.message }}</div>
         </ng-template>
 
     </div>
@@ -25,5 +28,3 @@
 
 <input type="text " style="width: 250px; " [(ngModel)]="currentMessage" (keydown.enter)="this.sendMessage(this.currentInterlocutor, this.currentMessage)" /><button (click)="this.sendMessage(this.currentInterlocutor, this.currentMessage)">Send</button>
 
-
-<td><button (click)="this.generatePandQ()">test</button></td>
