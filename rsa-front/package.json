@@ -20,6 +20,7 @@
         "@angular/router": "~12.2.0",
         "big-integer": "^1.6.51",
         "child_process": "^1.0.2",
+        "md5-typescript": "^1.0.5",
         "node-forge": "^1.2.1",
         "prime-functions": "^1.2.2",
         "rxjs": "~6.6.0",

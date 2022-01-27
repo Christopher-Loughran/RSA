@@ -10,7 +10,7 @@
     </tr>
 </table>
 
-<h4 *ngIf="this.currentInterlocutor != '' ">{{ this.currentInterlocutor }} :</h4>
+<h4 *ngIf="this.currentInterlocutor != '' ">Chatting with {{ this.currentInterlocutor }} :</h4>
 <div style="overflow-y: scroll; height:500px; width: 300px; display: flex; flex-direction: column-reverse;">
     <div *ngFor="let item of this.currentChat.reverse()">
 

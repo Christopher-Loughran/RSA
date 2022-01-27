@@ -2,8 +2,8 @@ import {Component, OnInit} from '@angular/core';
 import {io} from 'socket.io-client';
 import {environment} from 'src/environments/environment';
 import * as prime from 'prime-functions'
-import { BigInteger } from 'big-integer';
 import * as bigInt from "big-integer";
+import {Md5} from "md5-typescript";
 
 
 @Component({
@@ -27,7 +27,7 @@ export class AppComponent implements OnInit {
   currentInterlocutor: string = ""
   currentChat = [];
 
-  
+
   constructor() {
   }
 
@@ -143,6 +143,9 @@ export class AppComponent implements OnInit {
     //decode message
 
     let decrypted_message = this.decrypt(this.private_key, message);
+    if(!decrypted_message){
+      return;
+    }
 
     for (var i in this.chatHistory) { //check if user already has a chat history with sender
       if (this.chatHistory[i].id == sender_id) {
@@ -279,13 +282,14 @@ export class AppComponent implements OnInit {
       cipher.push(c)
     }
 
-    return {'cipher' : cipher};
+    return {'cipher' : cipher, 'hash': Md5.init(message)};
   }
 
 
   decrypt(private_key, encrypted_message_json){
-    console.log(encrypted_message_json);
-    let encrypted_message = JSON.parse(encrypted_message_json).cipher;
+    let received = JSON.parse(encrypted_message_json);
+    let encrypted_message = received.cipher;
+    let hash = received.hash;
 
     let d = private_key.d;
     let n = private_key.n;
@@ -301,14 +305,21 @@ export class AppComponent implements OnInit {
       console.log("(" + c + "**" + d + ") mod " + n + " -> " + value + " -> " + char);
       message += char
 
-      c = null;//optimised
+      c = null; //optimised
       value = null;
       char = null;
     }
 
     console.log("decrypt finished");
 
-    return message;
+    if(Md5.init(message) == hash){
+      console.log("Message hashes identical, decrypt successful.")
+      return message;
+    }
+    else{
+      console.error("Message hashes not identical, decrypt failed.")
+      return false;
+    }
   }
 }
 
