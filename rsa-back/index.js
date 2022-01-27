@@ -1,11 +1,10 @@
-import { info } from 'console';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from "socket.io";
 import { User } from './User.js'
 
 
-var adress = "127.0.0.1";
+var adress = "0.0.0.0";
 var port = 2551;
 
 
@@ -15,7 +14,7 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
     cors: {
-        origins: ['http://localhost:4200']
+        origins: ['http://0.0.0.0:4200']
     }
 });
 
